@@ -1,6 +1,6 @@
 import React from 'react';
 
-const EncounterTable = ({encounterList, removeEncounterHandler, encounterXP}) =>{
+const EncounterTable = ({encounterList, removeEncounterHandler, encounterXP, threatLevel}) =>{
 
     const removeClickHandler = (encounterKey) => {
         removeEncounterHandler(encounterKey);
@@ -28,6 +28,7 @@ const EncounterTable = ({encounterList, removeEncounterHandler, encounterXP}) =>
 
                 </table>
                 <p>Total XP: {encounterXP}</p>
+                <p>Threat Level: {threatLevel} </p>
             </div>
         );
     }
