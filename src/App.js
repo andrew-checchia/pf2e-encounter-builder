@@ -36,7 +36,6 @@ const App = () =>{
   }
 
   const threatTable = [
-    {threat: 'Trivial', threatXP: 0, characterAdjustment: 0},
     {threat: 'Trivial', threatXP: 40, characterAdjustment: 10},
     {threat: 'Low', threatXP: 60, characterAdjustment: 15},
     {threat: 'Moderate', threatXP: 80, characterAdjustment: 20},
@@ -52,8 +51,7 @@ const App = () =>{
       threatEntry.threatXP = entry.threatXP + ((partySize - 4) * entry.characterAdjustment);
       
       return threatEntry;
-    })
-    .findLast((entry) => entry.threatXP <= encounterXP).threat;
+    }).findLast((entry, entryIndex) => entryIndex === 0 || entry.threatXP <= encounterXP).threat;
 
   const partySizeHandler = (partySize) =>{
     setPartySize(partySize);
