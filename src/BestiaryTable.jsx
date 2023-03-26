@@ -18,15 +18,13 @@ const BestiaryTable = ({addEncounterHandler}) => {
     }
 
     function sortHandler(sortType){
-        if(sortType === sortBestiaryType){
-            if(sortBestiaryDirection === "asc"){
-                setSortBestiaryDirection("dsc");
-            }else{
-                setSortBestiaryDirection("asc");
-            }
-        }else{
-            setSortBestiaryType(sortType);
-        }
+        if(sortType != sortBestiaryType) 
+            return setSortBestiaryType(sortType); 
+            
+        if(sortBestiaryDirection != "asc")
+            return setSortBestiaryDirection("asc");
+
+        setSortBestiaryDirection("dsc");
     }
 
     function minLevelHandler(minLevelInput){
@@ -67,6 +65,7 @@ const BestiaryTable = ({addEncounterHandler}) => {
     let minLevelBoundary = minLevel ?? -1;
     let maxLevelBoundary = maxLevel ?? 25;
 
+    
     if(minLevelBoundary === ''){
         minLevelBoundary = -1;
     }
@@ -74,7 +73,7 @@ const BestiaryTable = ({addEncounterHandler}) => {
     if (maxLevelBoundary === ''){
         maxLevelBoundary = 25;
     }
-    
+
     filteredBestiaryTable = filteredBestiaryTable.filter((entry) => entry.level <= maxLevelBoundary && entry.level >= minLevelBoundary);
 
 
