@@ -1,37 +1,68 @@
-import React from 'react';
+import React from "react";
 
-const EncounterTable = ({encounterList, removeEncounterHandler, encounterXP, threatLevel}) =>{
+import { XP_BUDGET, THREAT_TABLE } from "./constants";
+import clampLevelDifference from "./clampLevelDifference";
 
-    const removeClickHandler = (encounterKey) => {
-        removeEncounterHandler(encounterKey);
-    }
+const EncounterTable = ({
+  encounterList,
+  removeEncounterHandler,
+  partyLevel,
+  partySize,
+}) => {
+  const removeClickHandler = (encounterKey) => {
+    removeEncounterHandler(encounterKey);
+  };
 
-    if(encounterList.length != 0){
-        return(
-            <div>
-                <table>
-                    <tr>
-                        <th>Name</th>
-                        <th>Level</th>
-                        <th>Family</th>
-                        <th></th>
-                    </tr>
+  const encounterXP = encounterList
+    .map(
+      (creature) =>
+        XP_BUDGET.find(
+          (entry) =>
+            entry.creatureLevel ===
+            clampLevelDifference(partyLevel, creature.level)
+        ).creatureXP
+    )
+    .reduce((prevSum, currSum) => currSum + prevSum, 0);
 
-                {encounterList.map(tableEntry =>(
-                <tr>
-                    <td>{tableEntry.name}</td>
-                    <td>{tableEntry.level}</td>
-                    <td>{tableEntry.family}</td>
-                    <td onClick={() => removeClickHandler(tableEntry)}>Remove?</td>
-                </tr>
-                ))}
+  const threatLevel = THREAT_TABLE.map((entry) => {
+    const threatEntry = {};
 
-                </table>
-                <p>Total XP: {encounterXP}</p>
-                <p>Threat Level: {threatLevel} </p>
-            </div>
-        );
-    }
-}
+    threatEntry.threat = entry.threat;
+    threatEntry.threatXP =
+      entry.threatXP + (partySize - 4) * entry.characterAdjustment;
+
+    return threatEntry;
+  }).findLast(
+    (entry, entryIndex) => entryIndex === 0 || entry.threatXP <= encounterXP
+  ).threat;
+
+  if (encounterList.length === 0) {
+    return null;
+  }
+
+  return (
+    <div>
+      <table>
+        <tr>
+          <th>Name</th>
+          <th>Level</th>
+          <th>Family</th>
+          <th></th>
+        </tr>
+
+        {encounterList.map((tableEntry, idx) => (
+          <tr key={idx}>
+            <td>{tableEntry.name}</td>
+            <td>{tableEntry.level}</td>
+            <td>{tableEntry.family}</td>
+            <td onClick={() => removeClickHandler(tableEntry)}>Remove?</td>
+          </tr>
+        ))}
+      </table>
+      <p>Total XP: {encounterXP}</p>
+      <p>Threat Level: {threatLevel} </p>
+    </div>
+  );
+};
 
 export default EncounterTable;

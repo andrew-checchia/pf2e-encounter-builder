@@ -1,130 +1,122 @@
-import React, {useState} from 'react';
-import Select from 'react-select';
-import BestiaryTableData from './bestiary.json';
+import React, { useMemo, useState } from "react";
+import Select from "react-select";
+import BestiaryTableData from "./bestiary.json";
 
-const BestiaryTable = ({addEncounterHandler}) => {
+const SORT_DIRECTION_STATE_MAP = {
+  asc: "desc",
+  desc: undefined,
+  [undefined]: "asc",
+};
 
-    const [bestiaryTable, setBestiaryTable] = useState(BestiaryTableData);
-    const [traitsSelect, setTraitsSelect] = useState([]);
-    const [minLevel, setMinLevel] = useState();
-    const [maxLevel, setMaxLevel] = useState();
+const ALL_TRAITS = new Set(); // SCREAMING_SNAKE_CASE
 
-    const [sortBestiaryType, setSortBestiaryType] = useState("name");
-    const [sortBestiaryDirection, setSortBestiaryDirection] = useState("asc");
-    
+BestiaryTableData.forEach((entry) => {
+  entry.traits.forEach((traitsEntry) => {
+    ALL_TRAITS.add(traitsEntry.name);
+  });
+});
 
-    const addEncounterClickHandler = (tableEntry) => {
-        addEncounterHandler(tableEntry);
+const TRAITS_LIST = Array.from(ALL_TRAITS)
+  .sort()
+  .map((entry) => {
+    return { value: entry, label: entry };
+  });
+
+const BestiaryTable = ({ addEncounterHandler }) => {
+  const [selectedTraits, setSelectedTraits] = useState([]);
+
+  const [inputMinLevel, setInputMinLevel] = useState();
+  const [inputMaxLevel, setInputMaxLevel] = useState();
+
+  const minLevel = inputMinLevel === "" ? -1 : Number(inputMinLevel);
+  const maxLevel = inputMaxLevel === "" ? -1 : Number(inputMaxLevel);
+
+  const [sortBestiaryType, setSortBestiaryType] = useState("name");
+  const [sortBestiaryDirection, setSortBestiaryDirection] = useState("asc");
+
+  const addEncounterClickHandler = (tableEntry) => {
+    addEncounterHandler(tableEntry);
+  };
+
+  function handleChangeSortType(sortType) {
+    if (sortType !== sortBestiaryType) {
+      setSortBestiaryType(sortType);
+      setSortBestiaryDirection("asc");
+      return;
     }
 
-    function sortHandler(sortType){
-        if(sortType != sortBestiaryType) 
-            return setSortBestiaryType(sortType); 
-            
-        if(sortBestiaryDirection != "asc")
-            return setSortBestiaryDirection("asc");
-
-        setSortBestiaryDirection("dsc");
-    }
-
-    function minLevelHandler(minLevelInput){
-        setMinLevel(minLevelInput);
-    }
-
-    function maxLevelHandler(maxLevelInput){
-        setMaxLevel(maxLevelInput)
-    }
-
-    let traitsSet = new Set();
-    
-    bestiaryTable.forEach((entry) =>{
-        entry.traits.forEach((traitsEntry) => {
-            traitsSet.add(traitsEntry.name);
-        });
+    setSortBestiaryDirection((prevDirection) => {
+      return SORT_DIRECTION_STATE_MAP[prevDirection];
     });
-    
-    const traitsList = Array.from(traitsSet).sort().map((entry) =>{
-        return {value: entry, label: entry}
-    });
+  }
 
-    let filteredBestiaryTable = [];
-    if(traitsSelect.length === 0){
-        filteredBestiaryTable = bestiaryTable;
-    }else{
-        bestiaryTable.forEach((entry) => {
-            entry.traits.forEach((entryTraits) => {
-                traitsSelect.forEach((entryTraitsSelect) =>{
-                    if(entryTraits.name === entryTraitsSelect.value){
-                        filteredBestiaryTable.push(entry);
-                    }
-                }); 
-            });
-        });
-    }
+  function minLevelHandler(minLevelInput) {
+    setInputMinLevel(minLevelInput);
+  }
 
-    let minLevelBoundary = minLevel ?? -1;
-    let maxLevelBoundary = maxLevel ?? 25;
+  function maxLevelHandler(maxLevelInput) {
+    setInputMaxLevel(maxLevelInput);
+  }
 
-    
-    if(minLevelBoundary === ''){
-        minLevelBoundary = -1;
-    }
+  const filteredBestiaryTable = useMemo(() => {
+    return BestiaryTableData;
+    // Write this fresh
+  }, [selectedTraits]);
 
-    if (maxLevelBoundary === ''){
-        maxLevelBoundary = 25;
-    }
+  const filteredAndSortedBestiaryTable = filteredBestiaryTable
+    .filter((entry) => entry.level <= maxLevel && entry.level >= minLevel)
+    .sort(); // Write this fresh
 
-    filteredBestiaryTable = filteredBestiaryTable.filter((entry) => entry.level <= maxLevelBoundary && entry.level >= minLevelBoundary);
+  return (
+    <div>
+      <h1>Bestiary Table</h1>
 
+      <Select
+        closeMenuOnSelect={false}
+        isMulti
+        isSearchable
+        onChange={setSelectedTraits}
+        options={TRAITS_LIST}
+      />
 
-    return (
-        <div>
-        <h1>Bestiary Table</h1>
-        
-        <Select 
-            closeMenuOnSelect={false}
-            isMulti
-            isSearchable
-            onChange={setTraitsSelect}
-            options={traitsList} 
-        />
+      <input
+        type="number"
+        placeholder="Min Level"
+        onChange={(e) => minLevelHandler(e.target.value)}
+        value={inputMinLevel}
+      />
+      <input
+        type="number"
+        placeholder="Max Level"
+        onChange={(e) => maxLevelHandler(e.target.value)}
+        value={inputMaxLevel}
+      />
 
-        <input type="number" placeholder="Min Level" onChange={(x) => minLevelHandler(x.target.value)} value={minLevel} />
-        <input type="number" placeholder="Max Level" onChange={(x) => maxLevelHandler(x.target.value)} value={maxLevel}/>
+      <table>
+        <thead>
+          <tr>
+            <th onClick={() => handleChangeSortType("name")}>Name</th>
+            <th onClick={() => handleChangeSortType("level")}>Level</th>
+            <th>Traits</th>
+          </tr>
+        </thead>
 
-        <table>
-            <tr>
-                <th onClick={() => sortHandler("name")}>Name</th>
-                <th onClick={() => sortHandler("level")}>Level</th>
-                <th>Traits</th>
+        <tbody>
+          {filteredAndSortedBestiaryTable.map((tableEntry, idx) => (
+            <tr key={idx} onClick={() => addEncounterClickHandler(tableEntry)}>
+              <td>{tableEntry.name}</td>
+              <td>{tableEntry.level}</td>
+              <td>
+                {tableEntry.traits.map((traitsEntry, teIdx) => (
+                  <span key={teIdx}>{traitsEntry.name} </span>
+                ))}
+              </td>
             </tr>
-            
-            {filteredBestiaryTable.sort((a, b) =>{
-                if(sortBestiaryDirection === "asc"){
-                    if(a[sortBestiaryType] < b[sortBestiaryType]){
-                        return -1;
-                    }
-                }else{
-                    if(a[sortBestiaryType] > b[sortBestiaryType]){
-                        return -1;
-                    }
-                }
-            }).map(tableEntry =>(
-            <tr onClick={() => addEncounterClickHandler(tableEntry)}>
-                <td>{tableEntry.name}</td>
-                <td>{tableEntry.level}</td>
-                <td>{
-                tableEntry.traits.map(traitsEntry =>(
-                    <span>{traitsEntry.name} </span>
-                ))
-                }</td>
-            </tr>
-            ))}
-            
-
-        </table>
-        </div>
-    )
-}
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 export default BestiaryTable;
