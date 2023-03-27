@@ -8,10 +8,28 @@ const SORT_DIRECTION_STATE_MAP = {
   [undefined]: "asc",
 };
 
+const ALL_TRAITS = new Set(); // SCREAMING_SNAKE_CASE
+
+BestiaryTableData.forEach((entry) => {
+  entry.traits.forEach((traitsEntry) => {
+    ALL_TRAITS.add(traitsEntry.name);
+  });
+});
+
+const TRAITS_LIST = Array.from(ALL_TRAITS)
+  .sort()
+  .map((entry) => {
+    return { value: entry, label: entry };
+  });
+
 const BestiaryTable = ({ addEncounterHandler }) => {
-  const [traitsSelect, setTraitsSelect] = useState([]);
-  const [minLevel, setMinLevel] = useState(); // sug: name suggests numeric value, should likely provide numeric default
-  const [maxLevel, setMaxLevel] = useState(); // sug: name suggests numeric value, should likely provide numeric default
+  const [selectedTraits, setSelectedTraits] = useState([]);
+
+  const [inputMinLevel, setInputMinLevel] = useState();
+  const [inputMaxLevel, setInputMaxLevel] = useState();
+
+  const minLevel = inputMinLevel === "" ? -1 : Number(inputMinLevel);
+  const maxLevel = inputMaxLevel === "" ? -1 : Number(inputMaxLevel);
 
   const [sortBestiaryType, setSortBestiaryType] = useState("name");
   const [sortBestiaryDirection, setSortBestiaryDirection] = useState("asc");
@@ -20,7 +38,7 @@ const BestiaryTable = ({ addEncounterHandler }) => {
     addEncounterHandler(tableEntry);
   };
 
-  function sortHandler(sortType) {
+  function handleChangeSortType(sortType) {
     if (sortType !== sortBestiaryType) {
       setSortBestiaryType(sortType);
       setSortBestiaryDirection("asc");
@@ -33,116 +51,52 @@ const BestiaryTable = ({ addEncounterHandler }) => {
   }
 
   function minLevelHandler(minLevelInput) {
-    setMinLevel(minLevelInput);
+    setInputMinLevel(minLevelInput);
   }
 
   function maxLevelHandler(maxLevelInput) {
-    setMaxLevel(maxLevelInput);
+    setInputMaxLevel(maxLevelInput);
   }
 
-  const traitsSet = new Set();
+  const filteredBestiaryTable = useMemo(() => {
+    return BestiaryTableData;
+    // Write this fresh
+  }, [selectedTraits]);
 
-  BestiaryTableData.forEach((entry) => {
-    entry.traits.forEach((traitsEntry) => {
-      traitsSet.add(traitsEntry.name);
-    });
-  });
-
-  const traitsList = Array.from(traitsSet)
-    .sort()
-    .map((entry) => {
-      return { value: entry, label: entry };
-    });
-
-  // smell: Something's off about this.
-  let filteredBestiaryTable = [];
-  if (traitsSelect.length === 0) {
-    filteredBestiaryTable = BestiaryTableData;
-  } else {
-    BestiaryTableData.forEach((entry) => {
-      entry.traits.forEach((entryTraits) => {
-        traitsSelect.forEach((entryTraitsSelect) => {
-          if (entryTraits.name === entryTraitsSelect.value) {
-            filteredBestiaryTable.push(entry);
-          }
-        });
-      });
-    });
-  }
-
-  let minLevelBoundary = minLevel ?? -1;
-  let maxLevelBoundary = maxLevel ?? 25;
-
-  if (minLevelBoundary === "") {
-    minLevelBoundary = -1;
-  }
-
-  if (maxLevelBoundary === "") {
-    maxLevelBoundary = 25;
-  }
-
-  filteredBestiaryTable = filteredBestiaryTable.filter(
-    (entry) =>
-      entry.level <= maxLevelBoundary && entry.level >= minLevelBoundary
-  );
-
-  const filteredAndSortedBestiaryTable = useMemo(() => {
-    return filteredBestiaryTable.sort((a, b) => {
-      console.log(90, { sortBestiaryType, sortBestiaryDirection });
-
-      if (
-        a[sortBestiaryType] < b[sortBestiaryType] &&
-        sortBestiaryDirection === "asc"
-      ) {
-        return -1;
-      }
-
-      if (
-        a[sortBestiaryType] < b[sortBestiaryType] &&
-        sortBestiaryDirection === "desc"
-      ) {
-        return 1;
-      }
-
-      return 0;
-    });
-  }, [
-    sortBestiaryType,
-    sortBestiaryDirection,
-    JSON.stringify(filteredBestiaryTable),
-  ]);
+  const filteredAndSortedBestiaryTable = filteredBestiaryTable
+    .filter((entry) => entry.level <= maxLevel && entry.level >= minLevel)
+    .sort(); // Write this fresh
 
   return (
     <div>
       <h1>Bestiary Table</h1>
 
-      {/* warn: Something feels off about this, no data-bind */}
       <Select
         closeMenuOnSelect={false}
         isMulti
         isSearchable
-        onChange={setTraitsSelect}
-        options={traitsList}
+        onChange={setSelectedTraits}
+        options={TRAITS_LIST}
       />
 
       <input
         type="number"
         placeholder="Min Level"
         onChange={(e) => minLevelHandler(e.target.value)}
-        value={minLevel}
+        value={inputMinLevel}
       />
       <input
         type="number"
         placeholder="Max Level"
         onChange={(e) => maxLevelHandler(e.target.value)}
-        value={maxLevel}
+        value={inputMaxLevel}
       />
 
       <table>
         <thead>
           <tr>
-            <th onClick={() => sortHandler("name")}>Name</th>
-            <th onClick={() => sortHandler("level")}>Level</th>
+            <th onClick={() => handleChangeSortType("name")}>Name</th>
+            <th onClick={() => handleChangeSortType("level")}>Level</th>
             <th>Traits</th>
           </tr>
         </thead>
